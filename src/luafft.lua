@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 ]]
 
-complex = require "complex"
+local complex = require "complex" --point this to where complex actually is
 
 ---------------------------------------------------------------
 --This is a lua port of the KissFFT Library by Mark Borgerding
@@ -37,6 +37,13 @@ local function msg(...)
 	if debugging then
 		print(...)
 	end
+end
+
+---------------------------------------------------------------
+-- Short helper function that provides an easy way to print a list with values.
+---------------------------------------------------------------
+local function print_list(list)
+  for i,v in ipairs(list) do print(i,v) end
 end
 
 ---------------------------------------------------------------
@@ -59,100 +66,13 @@ local function next_possible_size(n)
 end
 
 ---------------------------------------------------------------
---Calculates the Fast Fourier Transformation of the given input
---
---@param input		A set of points that will be transformed.
---					At this point, the input has to be a list of complex numbers,
---					according to the format in complex.lua.
---@param inverse	Boolean that controls whether a transformation
---					or inverse transformation will be carried out.
---@return			Returns a list of complex numbers with the same size
---					as the input list. Contains the fourier transformation of the input.
----------------------------------------------------------------
-function luafft.fft(input, inverse)
-	--the size of input defines the number of total points
-	local num_points = #input
-
-	assert(#input == next_possible_size(#input), string.format("The size of your input is not correct. For your size=%i, use a table of size=%i with zeros at the end.", #input, next_possible_size(#input)))
-
-	local twiddles = {}
-	for i = 0,num_points-1 do
-		local phase = -2*math.pi * i / num_points
-		if inverse then phase = phase * -1 end
-		twiddles[1+i] = complex.new( cos(phase), sin(phase) )
-	end
-	msg("Twiddles initialized...")
-	local factors = calculate_factors(num_points)
-	local output = {}
-	msg("FFT Initialization completed.\nFactors of size " .. #factors)
-	work(input, output, 1, 1, factors,1, twiddles, 1, 1, inverse)
-	return output
-
-end
-
----------------------------------------------------------------
---Calculates the real Fast Fourier Transformation of the given real input
---
-
----------------------------------------------------------------
-function luafft.fftr(input, inverse)
-	print("Not implemented.")
-end
-
-
-
----------------------------------------------------------------
--- Short helper function that provides an easy way to print a list with values.
----------------------------------------------------------------
-function print_list(list)
-  for i,v in ipairs(list) do print(i,v) end
-end
-
----------------------------------------------------------------
---The essential work function that performs the FFT
----------------------------------------------------------------
-function work(input, output, out_index, f, factors, factors_index, twiddles, fstride, in_stride, inverse)
-	local p = factors[factors_index]
-	local m = factors[factors_index+1]
-	factors_index = factors_index + 2
-	msg(p,m)
-	local last = out_index + p*m
-	local beg = out_index
-
-	if m == 1 then
-		repeat
-			if type(input[f]) == "number" then output[out_index] = complex.new(input[f],0)
-			else output[out_index] = input[f] end
-			f = f + fstride*in_stride
-			out_index = out_index +1
-		until out_index == last
-	else
-		repeat
-			--msg("Out_index", out_index,"f", f)
-			work(input, output,out_index,  f, factors, factors_index, twiddles, fstride*p, in_stride, inverse)
-			f = f + fstride*in_stride
-			out_index = out_index + m
-		until out_index == last
-	end
-
-	out_index = beg
-
-	if p == 2 then 			butterfly2(output,out_index, fstride, twiddles, m, inverse)
-	elseif p == 3 then 		butterfly3(output,out_index, fstride, twiddles, m, inverse)
-	elseif p == 4 then 		butterfly4(output,out_index, fstride, twiddles, m, inverse)
-	elseif p == 5 then 		butterfly5(output,out_index, fstride, twiddles, m, inverse)
-	else 					butterfly_generic(output,out_index, fstride, twiddles, m, p, inverse) end
-end
-
-
----------------------------------------------------------------
 ---devides a number into a sequence of factors
 --
 --@param num_points	Number of points that are used.
 --
 --@return		Returns a list with the factors
 ---------------------------------------------------------------
-function calculate_factors(num_points)
+local function calculate_factors(num_points)
   local buf = {}
   local p = 4
   local floor_sqrt = math.floor( math.sqrt( num_points) )
@@ -172,12 +92,10 @@ function calculate_factors(num_points)
   return buf
 end
 
-
-
 ---------------------------------------------------------------
 --Carries out a butterfly 2 run of the input sample.
 ---------------------------------------------------------------
-function butterfly2(input,out_index,fstride, twiddles, m, inverse)
+local function butterfly2(input,out_index,fstride, twiddles, m, inverse)
     local i1 = out_index
     local i2 = out_index + m
     local ti = 1
@@ -195,7 +113,7 @@ end
 ---------------------------------------------------------------
 --Carries out a butterfly 4 run of the input sample.
 ---------------------------------------------------------------
-function butterfly4(input,out_index, fstride, twiddles, m, inverse)
+local function butterfly4(input,out_index, fstride, twiddles, m, inverse)
 	local ti1, ti2, ti3 = 1,1,1
 	local scratch = {}
 	local k = m
@@ -241,7 +159,7 @@ end
 ---------------------------------------------------------------
 --Carries out a butterfly 3 run of the input sample.
 ---------------------------------------------------------------
-function butterfly3(input,out_index, fstride, twiddles, m, inverse)
+local function butterfly3(input,out_index, fstride, twiddles, m, inverse)
 	local k = m
 	local m2 = m*2
 	local tw1, tw2 = 1,1
@@ -278,7 +196,7 @@ end
 ---------------------------------------------------------------
 --Carries out a butterfly 5 run of the input sample.
 ---------------------------------------------------------------
-function butterfly5(input,out_index, fstride, twiddles, m, inverse)
+local function butterfly5(input,out_index, fstride, twiddles, m, inverse)
 	local i0,i1,i2,i3,i4 = out_index,out_index+m,out_index+2*m,out_index+3*m,out_index+4*m
 	local scratch = {}
 	local tw = twiddles
@@ -330,7 +248,7 @@ end
 ---------------------------------------------------------------
 --Carries out a generic butterfly run of the input sample.
 ---------------------------------------------------------------
-function butterfly_generic(input,out_index, fstride, twiddles, m, p, inverse )
+local function butterfly_generic(input,out_index, fstride, twiddles, m, p, inverse )
 	local norig = #input
 	local scratchbuf = {}
 
@@ -355,6 +273,83 @@ function butterfly_generic(input,out_index, fstride, twiddles, m, p, inverse )
 			k = k + m
 		end
 	end
+end
+
+---------------------------------------------------------------
+--The essential work function that performs the FFT
+---------------------------------------------------------------
+local function work(input, output, out_index, f, factors, factors_index, twiddles, fstride, in_stride, inverse)
+	local p = factors[factors_index]
+	local m = factors[factors_index+1]
+	factors_index = factors_index + 2
+	msg(p,m)
+	local last = out_index + p*m
+	local beg = out_index
+
+	if m == 1 then
+		repeat
+			if type(input[f]) == "number" then output[out_index] = complex.new(input[f],0)
+			else output[out_index] = input[f] end
+			f = f + fstride*in_stride
+			out_index = out_index +1
+		until out_index == last
+	else
+		repeat
+			--msg("Out_index", out_index,"f", f)
+			work(input, output,out_index,  f, factors, factors_index, twiddles, fstride*p, in_stride, inverse)
+			f = f + fstride*in_stride
+			out_index = out_index + m
+		until out_index == last
+	end
+
+	out_index = beg
+
+	if p == 2 then 			butterfly2(output,out_index, fstride, twiddles, m, inverse)
+	elseif p == 3 then 		butterfly3(output,out_index, fstride, twiddles, m, inverse)
+	elseif p == 4 then 		butterfly4(output,out_index, fstride, twiddles, m, inverse)
+	elseif p == 5 then 		butterfly5(output,out_index, fstride, twiddles, m, inverse)
+	else 					butterfly_generic(output,out_index, fstride, twiddles, m, p, inverse) end
+end
+
+---------------------------------------------------------------
+--Calculates the Fast Fourier Transformation of the given input
+--
+--@param input		A set of points that will be transformed.
+--					At this point, the input has to be a list of complex numbers,
+--					according to the format in complex.lua.
+--@param inverse	Boolean that controls whether a transformation
+--					or inverse transformation will be carried out.
+--@return			Returns a list of complex numbers with the same size
+--					as the input list. Contains the fourier transformation of the input.
+---------------------------------------------------------------
+function luafft.fft(input, inverse)
+	--the size of input defines the number of total points
+	local num_points = #input
+
+	assert(#input == next_possible_size(#input), string.format("The size of your input is not correct. For your size=%i, use a table of size=%i with zeros at the end.", #input, next_possible_size(#input)))
+
+	local twiddles = {}
+	for i = 0,num_points-1 do
+		local phase = -2*math.pi * i / num_points
+		if inverse then phase = phase * -1 end
+		twiddles[1+i] = complex.new( cos(phase), sin(phase) )
+	end
+	msg("Twiddles initialized...")
+	local factors = calculate_factors(num_points)
+	local output = {}
+	msg("FFT Initialization completed.\nFactors of size " .. #factors)
+	work(input, output, 1, 1, factors,1, twiddles, 1, 1, inverse)
+	return output
+
+end
+
+---------------------------------------------------------------
+--Calculates the real Fast Fourier Transformation of the given real input
+--
+
+---------------------------------------------------------------
+function luafft.fftr(input, inverse)
+	print("Not implemented.")
 end
 
 return luafft

@@ -1,7 +1,9 @@
 --[[
 This package provides functions to carry out Fast Fourier Transformations.
 
-Copyright (C) 2011 by Benjamin von Ardenne
+It has been modified to remove all global variables.
+
+Copyright (C) 2011 by Benjamin von Ardenne, 2025 ale4710
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
